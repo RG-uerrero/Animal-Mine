@@ -4,8 +4,15 @@
 -- porque su progreso real se sobrescribiria con una partida vacia.
 
 local DataStoreService = game:GetService("DataStoreService")
+local RunService = game:GetService("RunService")
 
-local STORE_NAME = "MinaAnimal_v1" -- no lo cambies o los jugadores pierden su progreso
+local Config = require(game:GetService("ReplicatedStorage").Shared.Config)
+
+-- El nombre del almacen depende de Config.DATA_VERSION:
+--   version 1 -> "MinaAnimal_v1" (el mismo que ya usan tus amigos)
+--   version 2 -> "MinaAnimal_v2" (todos empiezan de cero)
+-- En Studio se usa un almacen aparte, para que las pruebas no pisen el progreso real.
+local STORE_NAME = (RunService:IsStudio() and "MinaAnimal_Studio_v" or "MinaAnimal_v") .. Config.DATA_VERSION
 local RETRIES = 3
 
 local store = nil
@@ -17,6 +24,11 @@ local DataService = {}
 
 local function key(userId)
 	return "u" .. userId
+end
+
+-- En Studio, si el acceso a la API esta desactivado, reintentar no sirve de nada
+local function apiBlocked(err)
+	return string.find(tostring(err), "StudioAccessToApisNotAllowed", 1, true) ~= nil
 end
 
 -- Devuelve (ok, data)
@@ -35,6 +47,9 @@ function DataService.load(userId)
 			return true, res
 		end
 		warn("[DataService] fallo al cargar (intento " .. attempt .. "): " .. tostring(res))
+		if apiBlocked(res) then
+			return false, nil
+		end
 		task.wait(2 * attempt)
 	end
 	return false, nil
@@ -55,6 +70,9 @@ function DataService.save(userId, data)
 			return true
 		end
 		warn("[DataService] fallo al guardar (intento " .. attempt .. "): " .. tostring(err))
+		if apiBlocked(err) then
+			return false
+		end
 		task.wait(2 * attempt)
 	end
 	return false

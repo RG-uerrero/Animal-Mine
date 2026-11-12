@@ -17,6 +17,12 @@ Config.SLOTMAX = 8
 Config.STARMAX = 3 -- estrellas maximas por fusion
 Config.PRMAX = 25 -- renacimientos maximos
 
+-- VERSION DE DATOS: al SUBIR este numero (1 -> 2 -> 3...) todos los jugadores empiezan de cero,
+-- porque el guardado pasa a un almacen nuevo. Los datos anteriores no se borran: quedan en
+-- el almacen viejo (si vuelves al numero anterior, recuperan su progreso).
+-- Subelo solo cuando quieras un reinicio general entre versiones.
+Config.DATA_VERSION = 2
+
 -- RAREZAS (w = peso de probabilidad al rodar)
 Config.RAR = {
 	{ n = "Comun", c = C3(210, 210, 210), w = 50 },
@@ -80,7 +86,6 @@ Config.SK = {
 	{ id = "botas", name = "Botas ligeras", desc = "+2 velocidad", max = 6, base = 150, grow = 2.5, col = C3(90, 210, 160) },
 	{ id = "carro", name = "Carritos grandes", desc = "+100% capacidad", max = 8, base = 300, grow = 2.6, col = C3(230, 150, 70) },
 	{ id = "neg", name = "Negociacion", desc = "+15% dinero", max = 10, base = 500, grow = 2.4, col = C3(100, 200, 100) },
-	{ id = "gv", name = "Gerentes veloces", desc = "Recogen mas rapido", max = 5, base = 1500, grow = 3, col = C3(230, 200, 60) },
 	{ id = "suerte", name = "Suerte dorada", desc = "Mejor suerte al rodar", max = 5, base = 2500, grow = 3.2, col = C3(200, 110, 230) },
 	{ id = "crit", name = "Ojo de oro", desc = "+2% golpe critico", max = 10, base = 1200, grow = 2.3, col = C3(235, 80, 90) },
 	{ id = "ban", name = "Banquero", desc = "+0.2% interes", max = 8, base = 3000, grow = 3, col = C3(60, 200, 200) },

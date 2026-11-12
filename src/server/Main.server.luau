@@ -1377,14 +1377,11 @@ sh.o=math.min(c,sh.o+prod(st,i)*0.5)
 v.work=sh.o<c
 local s=0.3+1.0*(sh.o/c)
 v.mound.Size=V(4.5*s,2*s+0.2,3.4*s)
-v.cartLbl.Text=fmt(sh.o).." / "..fmt(c)
+v.cartLbl.Text=fmt(sh.o).." / "..fmt(c)..((sh.o>=c) and "\nLLENA!" or "")
 end
 end
-st.tmr=st.tmr+0.5
-if #st.eq>0 and st.tmr>=math.max(2,12-2*(st.sk.gv or 0)) then
-st.tmr=0
-for i=1,NSH do collect(p,i,false) end
-end
+-- NO hay recoleccion automatica: el mineral se queda en la vagoneta (hasta su tope)
+-- y el jugador debe ir a recogerlo pisando la vagoneta.
 st.itmr=st.itmr+0.5
 if st.itmr>=10 then
 st.itmr=0
