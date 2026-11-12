@@ -1,8 +1,0 @@
--- HUDController.luau
-local HUDController = {}
-
-function HUDController.init()
-    -- Lógica de interfaz de usuario del cliente (HUD)
-end
-
-return HUDController

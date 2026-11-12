@@ -1,7 +1,5 @@
-print("MAIN ARRANCO")
-
 -- MINA ANIMAL v2: script principal (src/server/Main.server.luau)
--- Datos fijos: src/shared/Config.luau | Formulas: src/shared/Formulas.luau | Guardado: src/server/DataService.luau
+-- Modulos: shared/Config + shared/Formulas | server/Builders + World + DataService | client/Hud.client
 local P=game:GetService("Players")
 local W=workspace
 local L=game:GetService("Lighting")
@@ -15,7 +13,6 @@ local DataService=require(script.Parent.DataService)
 local BALL=Enum.PartType.Ball
 local V=Vector3.new
 local C3=Color3.fromRGB
-local RW=Random.new(9) -- aleatorio del mundo (siempre igual)
 local R=Random.new()   -- aleatorio del juego (rodar gerentes, criticos, cofres)
 local NSH,MAXL,FY,DEPMAX=Config.NSH,Config.MAXL,Config.FY,Config.DEPMAX
 local SLOT0,SLOTMAX,STARMAX,PRMAX=Config.SLOT0,Config.SLOTMAX,Config.STARMAX,Config.PRMAX
@@ -48,112 +45,17 @@ local sr=Instance.new("SunRaysEffect",L)
 sr.Intensity=0.06
 sr.Spread=0.7
 
-local function mk(n,s,pos,c,m,shape)
-local p=Instance.new("Part")
-p.Name=n
-p.Anchored=true
-p.Size=s
-p.Position=pos
-if typeof(c)=="Color3" then p.Color=c else p.BrickColor=BrickColor.new(c) end
-p.Material=m or Enum.Material.SmoothPlastic
-if shape then p.Shape=shape end
-p.Parent=W
-return p
-end
-
-local function cyl(n,h,d,pos,c,m)
-local p=mk(n,V(h,d,d),pos,c,m,Enum.PartType.Cylinder)
-p.CFrame=CFrame.new(pos)*CFrame.Angles(0,0,math.rad(90))
-return p
-end
-
-local function label(part,txt,off,w,h,dist)
-local g=Instance.new("BillboardGui")
-g.Size=UDim2.new(0,w or 260,0,h or 55)
-g.StudsOffset=V(0,off,0)
-g.MaxDistance=dist or 70
-local t=Instance.new("TextLabel",g)
-t.Size=UDim2.new(1,0,1,0)
-t.BackgroundTransparency=1
-t.TextScaled=true
-t.Font=Enum.Font.FredokaOne
-t.TextColor3=Color3.new(1,1,1)
-t.TextStrokeTransparency=0.2
-t.Text=txt
-g.Parent=part
-return t
-end
-
-local function pop(part,txt,col)
-local g=Instance.new("BillboardGui")
-g.Size=UDim2.new(0,150,0,40)
-g.StudsOffset=V(math.random(-2,2),4,0)
-g.MaxDistance=70
-local t=Instance.new("TextLabel",g)
-t.Size=UDim2.new(1,0,1,0)
-t.BackgroundTransparency=1
-t.TextScaled=true
-t.Font=Enum.Font.FredokaOne
-t.TextColor3=col or C3(120,255,130)
-t.TextStrokeTransparency=0.2
-t.Text=txt
-g.Parent=part
-TS:Create(g,TweenInfo.new(0.9),{StudsOffset=g.StudsOffset+V(0,6,0)}):Play()
-DB:AddItem(g,0.9)
-end
-
+local B=require(script.Parent.Builders)
+local World=require(script.Parent.World)
+local mk,cyl,label,pop=B.mk,B.cyl,B.label,B.pop
+local WOODD=B.WOODD
 local fmt=F.fmt
-
-local WOOD=C3(140,95,62)
-local WOODD=C3(105,70,46)
-local STONE=C3(185,190,205)
-local DIRT=C3(122,80,62)
-local ROCKC=C3(112,84,66)
-
-local function board(pos,target,txt,w,h)
-local b=mk("Cartel",V(w,h,1),pos,WOOD,Enum.Material.Wood)
-b.CFrame=CFrame.lookAt(pos,V(target.X,pos.Y,target.Z))
-for _,sx in pairs({-1,1}) do
-local po=mk("Poste",V(1.5,pos.Y-1,1.5),pos,WOODD,Enum.Material.Wood)
-po.CFrame=b.CFrame*CFrame.new(sx*(w/2-1.5),-(pos.Y-1)/2,0)
-end
-local sg=Instance.new("SurfaceGui")
-sg.Face=Enum.NormalId.Front
-sg.PixelsPerStud=25
-local t=Instance.new("TextLabel",sg)
-t.Size=UDim2.new(1,0,1,0)
-t.BackgroundTransparency=1
-t.TextColor3=C3(255,240,205)
-t.TextScaled=true
-t.TextWrapped=true
-t.Font=Enum.Font.FredokaOne
-t.Text=txt
-sg.Parent=b
-return b
-end
-
-local function lamp(x,z)
-cyl("Poste",9,0.8,V(x,FY+4.5,z),C3(50,52,58),Enum.Material.Metal)
-local b=mk("Lampara",V(2.4,2.4,2.4),V(x,FY+10,z),C3(255,214,140),Enum.Material.Neon,BALL)
-local l=Instance.new("PointLight",b)
-l.Range=28
-l.Brightness=1
-l.Color=C3(255,200,120)
-end
-
-local function arbol(x,z)
-local s=RW:NextNumber(0.8,1.3)
-mk("Tronco",V(2.4*s,9*s,2.4*s),V(x,1+4.5*s,z),WOODD,Enum.Material.Wood)
-mk("Hojas",V(12*s,11*s,12*s),V(x,1+13*s,z),C3(RW:NextInteger(100,130),RW:NextInteger(185,215),RW:NextInteger(80,100)),Enum.Material.Grass,BALL)
-end
-
 -- DATOS (vienen de shared/Config.luau)
 local RAR,RARV,TIER,SH,MG,MGBY,SK=Config.RAR,Config.RARV,Config.TIER,Config.SH,Config.MG,Config.MGBY,Config.SK
 
 local plots={}
 local S={}
 local joined={}
-local tok={}
 local EV={on=false,left=0}
 local FX={}
 local IPN={"<",">","EQUIPAR","VENDER","FUSIONAR","SLOT+"}
@@ -169,22 +71,42 @@ local s=p:FindFirstChild("leaderstats")
 return s and s:FindFirstChild("Dinero")
 end
 
+-- COMUNICACION CON EL CLIENTE (el HUD lo dibuja src/client/Hud.client.luau)
+local Notify=Instance.new("RemoteEvent")
+Notify.Name="Notify"
+Notify.Parent=RPS
+local HudReady=Instance.new("RemoteEvent")
+HudReady.Name="HudReady"
+HudReady.Parent=RPS
+local readyEarly={}
+
+-- mensaje en pantalla; si el HUD del jugador aun no esta listo, se guarda en cola
 local function tell(p,txt)
-local pg=p:FindFirstChild("PlayerGui")
-local hud=pg and pg:FindFirstChild("HUD")
-local m=hud and hud:FindFirstChild("Msg")
-if not m then return end
-m.Text=txt
-m.Visible=true
-tok[p]=(tok[p] or 0)+1
-local n=tok[p]
-task.delay(5,function()
-if tok[p]==n and m.Parent then m.Visible=false end
-end)
+local st=S[p]
+if not st then return end
+if st.hudReady then
+Notify:FireClient(p,txt)
+else
+table.insert(st.queue,txt)
+if #st.queue>5 then table.remove(st.queue,1) end
+end
 end
 local function tellAll(txt)
 for _,p in ipairs(P:GetPlayers()) do tell(p,txt) end
 end
+
+-- el cliente avisa cuando su HUD esta listo: se envian los mensajes en cola
+HudReady.OnServerEvent:Connect(function(p)
+local st=S[p]
+if not st then
+readyEarly[p]=true
+return
+end
+st.hudReady=true
+for _,m in ipairs(st.queue) do Notify:FireClient(p,m) end
+st.queue={}
+st.ui()
+end)
 
 -- EFECTOS
 function FX.ring(pos,col,maxs,dur)
@@ -1039,16 +961,12 @@ local st=S[p]
 if h and st then h.WalkSpeed=16+2*(st.sk.botas or 0) end
 end
 
+-- publica el nivel de cada habilidad; el cliente arma los carteles con esos datos
 local function refreshSkills(p)
 local st=S[p]
-if not st or not st.sl then return end
-for k,sk in ipairs(SK) do
-local lv=st.sk[sk.id] or 0
-local t=st.sl[k]
-if t then
-if lv>=sk.max then t.Text=sk.name.."\nNIVEL MAXIMO"
-else t.Text=sk.name.."\n"..sk.desc.."\nNv "..lv.."/"..sk.max.."  $"..fmt(skCost(sk,lv)) end
-end
+if not st then return end
+for _,sk in ipairs(SK) do
+p:SetAttribute("sk_"..sk.id,st.sk[sk.id] or 0)
 end
 end
 
@@ -1096,294 +1014,35 @@ end
 ch:PivotTo(CFrame.new(pos))
 end
 
--- MUNDO
-mk("Suelo",V(640,1,420),V(0,0.5,40),C3(105,205,85),Enum.Material.Grass)
-for x=-300,300,60 do
-local s=RW:NextInteger(30,55)
-mk("Colina",V(90,s,70),V(x,s/3,-130),C3(RW:NextInteger(85,110),RW:NextInteger(170,195),RW:NextInteger(70,90)),Enum.Material.Grass,BALL)
-end
-mk("Plaza",V(420,0.3,60),V(0,1.25,100),STONE,Enum.Material.Cobblestone)
-board(V(0,16,138),V(0,16,100),"MINA ANIMAL\nContrata mineros, junta dinero y rueda gerentes!",56,14)
-for _,x in pairs({-150,-75,0,150,225}) do lamp(x,118) end
-for _,x in pairs({-250,-200,-150,-100,-50,50,100,150,200,250}) do arbol(x,160) end
-for _,x in pairs({-100,0,100,-200,200}) do arbol(x,-20) end
-for _,x in pairs({-290,290}) do
-for z=0,120,40 do arbol(x,z) end
-end
-
--- flores
-local FLC={C3(255,120,170),C3(255,225,90),C3(245,245,250),C3(180,120,255),C3(255,150,80)}
-for _=1,70 do
-mk("Flor",V(1,1,1),V(RW:NextNumber(-300,300),1.5,RW:NextNumber(142,240)),FLC[RW:NextInteger(1,#FLC)],Enum.Material.SmoothPlastic,BALL)
-end
-
--- nubes
-local CLOUDS={}
-for k=1,8 do
-local m=Instance.new("Model")
-local function puff(s,off)
-local p=Instance.new("Part")
-p.Shape=BALL
-p.Size=s
-p.Anchored=true
-p.CanCollide=false
-p.CastShadow=false
-p.Material=Enum.Material.SmoothPlastic
-p.Color=Color3.new(1,1,1)
-p.Transparency=0.15
-p.Position=off
-p.Parent=m
-return p
-end
-local main=puff(V(30,14,22),V(0,0,0))
-puff(V(20,11,16),V(-16,-2,3))
-puff(V(22,10,16),V(15,-3,-2))
-m.PrimaryPart=main
-m.Parent=W
-CLOUDS[k]={m=m,x=RW:NextNumber(-420,420),y=RW:NextNumber(110,150),z=RW:NextNumber(-120,220),sp=RW:NextNumber(1.5,4)}
-end
-
--- fuente de la plaza
-cyl("FuenteBase",1.4,22,V(120,FY+0.7,112),STONE,Enum.Material.Concrete)
-cyl("FuenteAgua",0.5,18,V(120,FY+1.45,112),C3(90,170,255),Enum.Material.Glass).Transparency=0.35
-cyl("FuentePilar",5,2.4,V(120,FY+3.5,112),STONE,Enum.Material.Concrete)
-local spout=mk("Chorro",V(1,1,1),V(120,FY+6.2,112),Color3.new(1,1,1))
-spout.Transparency=1
-spout.CanCollide=false
-local wpe=Instance.new("ParticleEmitter")
-wpe.Rate=80
-wpe.Lifetime=NumberRange.new(1.4,1.8)
-wpe.Speed=NumberRange.new(22,28)
-wpe.SpreadAngle=Vector2.new(8,8)
-wpe.Acceleration=V(0,-40,0)
-wpe.Size=NumberSequence.new(0.6)
-wpe.Transparency=NumberSequence.new(0.3)
-wpe.Color=ColorSequence.new(C3(170,220,255))
-wpe.LightEmission=0.3
-wpe.Parent=spout
-local wl=Instance.new("PointLight",spout)
-wl.Color=C3(120,190,255)
-wl.Range=24
-wl.Brightness=0.8
-
-for i=1,4 do
-local cx=(i-1)*100-150
-local cz=0
-local pl={i=i,cx=cx,cz=cz,v={}}
-plots[i]=pl
-mk("MinaSuelo",V(70,0.4,58),V(cx,1.2,cz-18),DIRT,Enum.Material.Ground)
-mk("MuroFondo",V(70,24,4),V(cx,FY+12,cz-48),ROCKC,Enum.Material.Slate)
-mk("MuroLado",V(4,12,58),V(cx-35,FY+6,cz-18),ROCKC,Enum.Material.Slate)
-mk("MuroLado",V(4,12,58),V(cx+35,FY+6,cz-18),ROCKC,Enum.Material.Slate)
-for _,zz in pairs({-9.2,-6.8}) do
-mk("Riel",V(70,0.4,0.6),V(cx,FY+0.5,cz+zz),C3(205,210,225),Enum.Material.Metal)
-end
-for tx=-34,34,4 do
-mk("Durmiente",V(0.8,0.3,5),V(cx+tx,FY+0.15,cz-8),WOODD,Enum.Material.Wood)
-end
-mk("Plataforma",V(70,0.4,46),V(cx,1.2,cz+34),STONE,Enum.Material.Concrete)
-mk("Camino",V(14,0.2,34),V(cx,1.3,cz+73),STONE,Enum.Material.Concrete)
-local dep=mk("Deposito",V(22,12,14),V(cx-20,FY+6,cz+46),C3(130,140,170),Enum.Material.Concrete)
-mk("DepositoPuerta",V(8,8,0.5),V(cx-20,FY+4,cz+38.8),C3(60,65,85),Enum.Material.Metal)
-pl.depLbl=label(dep,"DEPOSITO",11,300,110,80)
-
-pl.dPad={}
-pl.dlbl={}
-local dcol={C3(70,190,100),C3(220,80,80),C3(235,185,60)}
-local dact={"Depositar todo","Retirar todo","Ampliar"}
-local dfun={depositAll,withdrawAll,upgradeDeposit}
-for k=1,3 do
-local pd=cyl("DepPad",0.6,6,V(cx-28+(k-1)*8,FY+0.3,cz+33),dcol[k],Enum.Material.Metal)
-pl.dPad[k]=pd
-pl.dlbl[k]=label(pd,"",4,200,70,50)
-local dp=Instance.new("ProximityPrompt")
-dp.ActionText=dact[k]
-dp.ObjectText="Deposito"
-dp.HoldDuration=0.2
-dp.MaxActivationDistance=10
-dp.RequiresLineOfSight=false
-dp.Parent=pd
-local fn=dfun[k]
-dp.Triggered:Connect(function(p) fn(p,pl) end)
-end
-updDeposit(pl)
-
-local cart=mk("CartelMina",V(26,5,1),V(cx,FY+16,cz-45.5),WOOD,Enum.Material.Wood)
-pl.nameLbl=label(cart,"MINA LIBRE",0,420,90,150)
-
--- plataforma de rodar gerentes
-local rx,rz=cx+18,cz+36
-cyl("RodarBase",0.6,16,V(rx,FY+0.3,rz),C3(160,165,185),Enum.Material.Concrete)
-cyl("RodarAnillo",0.4,9,V(rx,FY+0.8,rz),C3(210,60,60),Enum.Material.Metal)
-local ped=cyl("Pedestal",1.5,6,V(rx,FY+1.35,rz),C3(235,185,60),Enum.Material.Metal)
-pl.rollLbl=label(ped,"RODAR GERENTE",6,300,80,70)
-local qg=Instance.new("BillboardGui")
-qg.Size=UDim2.new(0,70,0,70)
-qg.StudsOffset=V(0,3.2,0)
-qg.MaxDistance=60
-local qt=Instance.new("TextLabel",qg)
-qt.Size=UDim2.new(1,0,1,0)
-qt.BackgroundTransparency=1
-qt.TextScaled=true
-qt.Font=Enum.Font.FredokaOne
-qt.TextColor3=C3(20,20,25)
-qt.TextStrokeColor3=Color3.new(1,1,1)
-qt.TextStrokeTransparency=0
-qt.Text="?"
-qg.Parent=ped
-pl.q=qg
-local rp=Instance.new("ProximityPrompt")
-rp.ActionText="Rodar"
-rp.ObjectText="Gerente"
-rp.HoldDuration=0.2
-rp.MaxActivationDistance=12
-rp.RequiresLineOfSight=false
-rp.Parent=ped
-rp.Triggered:Connect(function(p) doRoll(p,pl) end)
-
--- ESTABLO (inventario fisico de gerentes)
-local ix0,iz0=cx+20,cz+54
-local ibase=cyl("EstabloBase",0.8,11,V(ix0,FY+0.4,iz0),C3(110,90,70),Enum.Material.Wood)
-cyl("EstabloAnillo",0.3,9,V(ix0,FY+0.9,iz0),C3(235,185,60),Enum.Material.Metal)
-pl.invCF=CFrame.new(ix0,FY+1.05,iz0)
-pl.invLbl=label(ibase,"ESTABLO",11.5,360,130,80)
-pl.ilbl={}
-local ipC={C3(90,130,220),C3(90,130,220),C3(70,190,100),C3(220,150,60),C3(190,100,255),C3(235,185,60)}
-local ipA={"Anterior","Siguiente","Equipar / Quitar","Vender copia","Fusionar","Comprar slot"}
-local ipF={invNav(-1),invNav(1),invEquip,invSell,invFuse,invSlot}
-for k=1,6 do
-local pd=cyl("EstPad",0.6,4.4,V(cx+7.5+(k-1)*5,FY+0.3,cz+48),ipC[k],Enum.Material.Metal)
-pl.ilbl[k]=label(pd,IPN[k],2.8,170,60,45)
-local ip=Instance.new("ProximityPrompt")
-ip.ActionText=ipA[k]
-ip.ObjectText="Establo"
-ip.HoldDuration=(k<=2) and 0 or 0.15
-ip.MaxActivationDistance=4
-ip.RequiresLineOfSight=false
-ip.Parent=pd
-local fn=ipF[k]
-ip.Triggered:Connect(function(p) fn(p,pl) end)
-end
-updInv(pl)
-
--- tuneles de mineros
-for j=1,NSH do
-local x=cx-25+(j-1)*10
-local v={}
-pl.v[j]=v
-mk("Poste",V(2,12,2),V(x-4,FY+6,cz-44),WOODD,Enum.Material.Wood)
-mk("Poste",V(2,12,2),V(x+4,FY+6,cz-44),WOODD,Enum.Material.Wood)
-mk("Viga",V(10,2,2.4),V(x,FY+12.5,cz-44),WOOD,Enum.Material.Wood)
-mk("Roca",V(9,9,7),V(x,FY+4.2,cz-46),ROCKC,Enum.Material.Slate,BALL)
-mk("Roca",V(5,5,5),V(x-2.5,FY+2.2,cz-42),C3(125,92,70),Enum.Material.Slate,BALL)
-mk("Roca",V(4,4,4),V(x+2.7,FY+1.8,cz-41.5),C3(100,75,60),Enum.Material.Slate,BALL)
-mk("Oro",V(1.6,1.6,1.6),V(x+1,FY+5,cz-42.8),C3(235,190,70),Enum.Material.Metal,BALL)
-mk("Entrada",V(9,0.1,10),V(x,FY+0.05,cz-37),C3(196,165,125),Enum.Material.Sand)
--- cristales brillantes del color del minero
-for kk=1,4 do
-local sx=(kk%2==0) and 1 or -1
-local cr=mk("Cristal",V(0.9,RW:NextNumber(2,3.6),0.9),V(x+sx*(3.4+RW:NextNumber(0,0.8)),FY+1.8,cz-40.5-RW:NextNumber(0,1.5)),TIER[j],Enum.Material.Neon)
-cr.CFrame=CFrame.new(cr.Position)*CFrame.Angles(RW:NextNumber(-0.4,0.4),RW:NextNumber(0,3),RW:NextNumber(-0.4,0.4))
-cr.Transparency=0.15
-cr.CanCollide=false
-if kk==1 then
-local cl=Instance.new("PointLight",cr)
-cl.Color=TIER[j]
-cl.Range=14
-cl.Brightness=0.7
-end
-end
-cyl("BotonBase",0.5,7,V(x,FY+0.25,cz-27),C3(60,60,70),Enum.Material.Metal)
-local btn=cyl("Boton",0.7,5.5,V(x,FY+0.6,cz-27),C3(225,55,55),Enum.Material.Metal)
-v.btnLbl=label(btn,"",4,240,80,60)
-local pr=Instance.new("ProximityPrompt")
-pr.ActionText="Contratar / Mejorar"
-pr.ObjectText="Minero "..j
-pr.HoldDuration=0.2
-pr.MaxActivationDistance=10
-pr.RequiresLineOfSight=false
-pr.Parent=btn
-pr.Triggered:Connect(function(p) pressBtn(p,pl,j) end)
-mk("Vagoneta",V(6,2.4,4.4),V(x,FY+1.7,cz-8),C3(150,100,60),Enum.Material.Wood)
-v.mound=mk("Mineral",V(4.5,2,3.4),V(x,FY+3.1,cz-8),TIER[j],Enum.Material.Glass,BALL)
-local pad=mk("Recoger",V(8,3,7),V(x,FY+2,cz-8),Color3.new(1,1,1))
-pad.Transparency=1
-pad.CanCollide=false
-v.pad=pad
-v.cartLbl=label(pad,"",3,200,50,50)
-local deb=0
-pad.Touched:Connect(function(h)
-local p=P:GetPlayerFromCharacter(h.Parent)
-if not p or p~=pl.owner then return end
-if os.clock()-deb<0.5 then return end
-deb=os.clock()
+-- MUNDO (lo construye src/server/World.luau; aqui solo se le pasan las acciones)
+local CLOUDS=World.build({
+plots=plots,
+skp=SKP,
+ipn=IPN,
+handlers={
+deposit={depositAll,withdrawAll,upgradeDeposit},
+roll=doRoll,
+inv={invNav(-1),invNav(1),invEquip,invSell,invFuse,invSlot},
+press=pressBtn,
+touch=function(p,j)
 local a=collect(p,j,true)
 if a>0 then
 local st=S[p]
 if st then st.ui() end
 end
-end)
-updShaft(pl,j)
-end
+end,
+skill=buySkill,
+tp=tp,
+prestige=doPrestige,
+},
+})
+-- textos iniciales de los carteles
+for _,pl in ipairs(plots) do
+updDeposit(pl)
+updInv(pl)
 updRoll(pl)
+for j=1,NSH do updShaft(pl,j) end
 end
-
--- HABILIDADES (plaza este)
-local hx,hz=70,106
-local hub=cyl("HabHub",0.8,12,V(hx,FY+0.4,hz),C3(70,75,130),Enum.Material.Metal)
-label(hub,"HABILIDADES",5,300,60,80)
-for k,sk in ipairs(SK) do
-local a=math.rad((k-1)*45)
-local pos=V(hx+18*math.cos(a),FY+0.4,hz+18*math.sin(a))
-local pd=cyl("HabPad",0.8,9,pos,sk.col,Enum.Material.Metal)
-local pr=Instance.new("ProximityPrompt")
-pr.ActionText="Mejorar"
-pr.ObjectText=sk.name
-pr.HoldDuration=0.2
-pr.MaxActivationDistance=7
-pr.RequiresLineOfSight=false
-pr.Parent=pd
-pr.Triggered:Connect(function(p) buySkill(p,k) end)
-SKP[k]=pd
-end
-
--- TELETRANSPORTE (plaza oeste)
-local TPN={"Aparicion","Mi base","Mi mina","Establo","Habilidades"}
-local tpart
-for k=1,#TPN do
-local pd=cyl("TpPad",0.8,8,V(-80+(k-1)*18,FY+0.4,106),C3(150,60,210),Enum.Material.Metal)
-label(pd,TPN[k],4,240,50,60)
-local pr=Instance.new("ProximityPrompt")
-pr.ActionText="Teletransportar"
-pr.ObjectText=TPN[k]
-pr.HoldDuration=0.2
-pr.MaxActivationDistance=7
-pr.RequiresLineOfSight=false
-pr.Parent=pd
-pr.Triggered:Connect(function(p) tp(p,k) end)
-if k==3 then tpart=pd end
-end
-label(tpart,"TELETRANSPORTE",9,300,50,80)
-
--- RENACER (plaza este)
-local rpd=cyl("RenacerPad",1,12,V(180,FY+0.5,106),C3(255,200,60),Enum.Material.Neon)
-cyl("RenacerAnillo",0.4,16,V(180,FY+0.2,106),C3(255,255,255),Enum.Material.Neon)
-label(rpd,"RENACER\nReinicia mineros y dinero\n+50% de dinero PARA SIEMPRE\n(necesitas los 6 mineros)",8,380,120,80)
-local rpr=Instance.new("ProximityPrompt")
-rpr.ActionText="Renacer (mantener)"
-rpr.ObjectText="Reinicia tu progreso"
-rpr.HoldDuration=2
-rpr.MaxActivationDistance=10
-rpr.RequiresLineOfSight=false
-rpr.Parent=rpd
-rpr.Triggered:Connect(doPrestige)
-
-local sp=W:FindFirstChildOfClass("SpawnLocation") or Instance.new("SpawnLocation",W)
-sp.Anchored=true
-sp.Neutral=true
-sp.Size=V(10,1,10)
-sp.Position=V(0,1.9,96)
-sp.Transparency=1
 
 -- COFRES DEL TESORO Y EVENTOS
 local chestM
@@ -1500,9 +1159,13 @@ rb.Name="Renacer"
 rb.Value=0
 rb.Parent=f
 f.Parent=p
-local st={sh={},sk={},mg={},eq={},star={},ro=0,tmr=0,itmr=0,dep=0,dl=0,coll=false,sl={},ui=function() end,pr=0,slots=SLOT0,ix=1,tot=0,qn=0}
+local st={sh={},sk={},mg={},eq={},star={},ro=0,tmr=0,itmr=0,dep=0,dl=0,coll=false,ui=function() end,queue={},hudReady=false,pr=0,slots=SLOT0,ix=1,tot=0,qn=0}
 for i=1,NSH do st.sh[i]={h=false,l=0,o=0} end
 S[p]=st
+if readyEarly[p] then
+st.hudReady=true
+readyEarly[p]=nil
+end
 for _,q in ipairs(plots) do
 if not q.owner then
 q.owner=p
@@ -1566,83 +1229,24 @@ updRoll(pl)
 updDeposit(pl)
 updInv(pl)
 end
-local pg=p:WaitForChild("PlayerGui")
-local old=pg:FindFirstChild("HUD")
-if old then old:Destroy() end
-local g=Instance.new("ScreenGui")
-g.Name="HUD"
-g.ResetOnSpawn=false
-local function box(name,pos,size,bg,tc)
-local t=Instance.new("TextLabel")
-t.Name=name
-t.Position=pos
-t.Size=size
-t.BackgroundColor3=bg
-t.BackgroundTransparency=0.2
-t.TextColor3=tc
-t.TextScaled=true
-t.TextWrapped=true
-t.Font=Enum.Font.FredokaOne
-Instance.new("UICorner",t).CornerRadius=UDim.new(0,12)
-local us=Instance.new("UIStroke",t)
-us.Color=Color3.new(1,1,1)
-us.Transparency=0.75
-us.Thickness=1.5
-t.Parent=g
-return t
-end
-local cash=box("Cash",UDim2.new(0,12,0,90),UDim2.new(0,220,0,44),C3(30,90,50),C3(190,255,190))
-local stat=box("Stat",UDim2.new(0,12,0,138),UDim2.new(0,220,0,30),C3(28,32,44),C3(255,225,120))
-local qst=box("Quest",UDim2.new(0,12,0,174),UDim2.new(0,220,0,74),C3(28,32,44),C3(190,230,255))
-local evb=box("Evento",UDim2.new(0.5,-200,0,8),UDim2.new(0,400,0,34),C3(150,100,0),C3(255,240,160))
-evb.Visible=false
-local tut=box("Tut",UDim2.new(0.5,-300,0,70),UDim2.new(0,600,0,40),C3(0,0,0),Color3.new(1,1,1))
-tut.BackgroundTransparency=1
-local ts=tut:FindFirstChildOfClass("UIStroke")
-ts.Color=C3(10,40,110)
-ts.Transparency=0
-ts.Thickness=2.5
-local mgl=box("Ger",UDim2.new(1,-215,0,70),UDim2.new(0,200,0,215),C3(24,30,50),Color3.new(1,1,1))
-mgl.TextScaled=false
-mgl.TextSize=15
-mgl.TextXAlignment=Enum.TextXAlignment.Left
-mgl.TextYAlignment=Enum.TextYAlignment.Top
-local msg=box("Msg",UDim2.new(0.5,-280,1,-190),UDim2.new(0,560,0,70),C3(24,26,38),Color3.new(1,1,1))
-msg.Visible=false
-for k,_ in ipairs(SK) do
-local bg=Instance.new("BillboardGui")
-bg.Adornee=SKP[k]
-bg.Size=UDim2.new(0,260,0,100)
-bg.StudsOffset=V(0,5.5,0)
-bg.MaxDistance=45
-local t=Instance.new("TextLabel",bg)
-t.Size=UDim2.new(1,0,1,0)
-t.BackgroundTransparency=1
-t.TextScaled=true
-t.Font=Enum.Font.FredokaOne
-t.TextColor3=Color3.new(1,1,1)
-t.TextStrokeTransparency=0.2
-bg.Parent=g
-st.sl[k]=t
-end
+-- EL HUD LO DIBUJA EL CLIENTE (src/client/Hud.client.luau).
+-- El servidor solo publica los datos como atributos del jugador.
 st.ui=function()
-cash.Text="$ "..fmt(d.Value)
-stat.Text="+"..fmt(income(st)).."/s   x"..string.format("%.2f",cashMult(st))
-qst.Text=qtext(st)
-tut.Text=tutorial(st)
-evb.Visible=EV.on
-if EV.on then evb.Text="HORA DORADA x2   "..EV.left.."s" end
+p:SetAttribute("Income",income(st))
+p:SetAttribute("Mult",cashMult(st))
+p:SetAttribute("Quest",qtext(st))
+p:SetAttribute("Tut",tutorial(st))
+p:SetAttribute("EvOn",EV.on)
+p:SetAttribute("EvLeft",EV.left)
 local lines={"EQUIPADOS ("..#st.eq.."/"..st.slots..")"}
 for _,n in ipairs(st.eq) do
 table.insert(lines,n.." "..string.rep("*",st.star[n] or 0))
 end
 table.insert(lines,"")
 table.insert(lines,"Gerentes: "..mgrCount(st).."   Renacer: "..st.pr)
-mgl.Text=table.concat(lines,"\n")
+p:SetAttribute("Ger",table.concat(lines,"\n"))
 end
-d.Changed:Connect(function() st.ui() end)
 refreshSkills(p)
-g.Parent=pg
 st.ui()
 if not pl then
 tell(p,"El servidor esta lleno (4 minas). Intenta en otro servidor.")
@@ -1683,7 +1287,7 @@ local st=S[p]
 local pl=st and st.plot
 S[p]=nil
 joined[p]=nil
-tok[p]=nil
+readyEarly[p]=nil
 if pl then
 for i=1,NSH do despawn(pl,i) end
 pl.owner=nil
