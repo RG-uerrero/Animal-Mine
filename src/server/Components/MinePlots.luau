@@ -153,7 +153,7 @@ function MinePlots.build(context)
 		-- Pads de interacción del depósito (Depositar, Retirar, Ampliar)
 		plot.dPad = {}
 		plot.dlbl = {}
-		local dcol = { color3(70, 190, 100), color3(220, 80, 80), color3(235, 185, 60) }
+		local dcol = { color3(70, 190, 100), color3(120, 80, 80), color3(0, 255, 255) }
 		local dact = { "Depositar todo", "Retirar todo", "Ampliar deposito" }
 		local dname = { "DEPOSITAR", "RETIRAR", "AMPLIAR\nDEPOSITO" }
 		local dfun = handlers.deposit
@@ -166,6 +166,7 @@ function MinePlots.build(context)
 				dcol[k],
 				Enum.Material.Metal
 			)
+
 			plot.dPad[k] = pd
 			plot.dlbl[k] = label(pd, dname[k], 3.2, 116, 42, 24, "detail")
 			local dp = Instance.new("ProximityPrompt")
