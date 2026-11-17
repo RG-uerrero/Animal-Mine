@@ -75,7 +75,7 @@ function MinePlots.build(context)
 		for _, zz in pairs({ -9.2, -6.8 }) do
 			createPart(
 				"Riel",
-				vector3(70, 0.4, 0.6),
+				vector3(69, 0.4, 0.6),
 				vector3(cx, GROUND_HEIGHT + 0.5, cz + zz),
 				color3(205, 210, 225),
 				Enum.Material.Metal
@@ -153,7 +153,7 @@ function MinePlots.build(context)
 		-- Pads de interacción del depósito (Depositar, Retirar, Ampliar)
 		plot.dPad = {}
 		plot.dlbl = {}
-		local dcol = { color3(70, 190, 100), color3(120, 80, 80), color3(0, 255, 255) }
+		local dcol = { color3(92, 8, 92), color3(255, 0, 0), color3(255, 255, 0) }
 		local dact = { "Depositar todo", "Retirar todo", "Ampliar deposito" }
 		local dname = { "DEPOSITAR", "RETIRAR", "AMPLIAR\nDEPOSITO" }
 		local dfun = handlers.deposit
@@ -166,7 +166,6 @@ function MinePlots.build(context)
 				dcol[k],
 				Enum.Material.Metal
 			)
-
 			plot.dPad[k] = pd
 			plot.dlbl[k] = label(pd, dname[k], 3.2, 116, 42, 24, "detail")
 			local dp = Instance.new("ProximityPrompt")
@@ -275,12 +274,12 @@ function MinePlots.build(context)
 		plot.ilbl = {}
 
 		local ipC = {
-			color3(90, 130, 220),
-			color3(90, 130, 220),
-			color3(70, 190, 100),
-			color3(220, 150, 60),
-			color3(190, 100, 255),
-			color3(235, 185, 60),
+			color3(92, 8, 92),
+			color3(255, 0, 0),
+			color3(255, 255, 0),
+			color3(0, 255, 0),
+			color3(0, 0, 255),
+			color3(255, 165, 0),
 		}
 		local ipA = { "Anterior", "Siguiente", "Equipar / Quitar", "Vender copia", "Fusionar", "Comprar slot" }
 		local ipF = handlers.inv
